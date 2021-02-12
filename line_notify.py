@@ -19,7 +19,7 @@ def notifySticker(stickerID,stickerPackageID):
 
 def _lineNotify(payload,file=None):
     url = 'https://notify-api.line.me/api/notify'
-    token = 'vVwVFagE6c7DKGrO6qhZyW5tESbmAes2jnI6hbCkgqw'	#EDIT
+    token = 'PLEASE ADD YOUR TOKEN'	#EDIT
     headers = {'Authorization':'Bearer '+token}
     return requests.post(url, headers=headers , data = payload, files=file)
 
