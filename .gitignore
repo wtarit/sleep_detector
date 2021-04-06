@@ -1,0 +1,4 @@
+*.pyc
+__pycache__
+.idea/
+checkpoint_iter_370000.pth
