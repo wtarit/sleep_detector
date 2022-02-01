@@ -1,3 +1,8 @@
 *.pyc
 __pycache__
 .idea/
+*.pth
+*.onnx
+log_data
+test_data
+.env
