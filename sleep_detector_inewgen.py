@@ -1,8 +1,8 @@
 import argparse
-
 import cv2
 import numpy as np
 import torch
+import time
 
 from models.with_mobilenet import PoseEstimationWithMobileNet
 from modules.keypoints import extract_keypoints, group_keypoints
@@ -10,14 +10,12 @@ from modules.load_state import load_state
 from modules.pose import Pose, track_poses
 from val import normalize, pad_width
 
-import time
-
-# sound
-#from pydub import AudioSegment
-#from pydub.playback import play
+from pydub import AudioSegment
+from pydub.playback import _play_with_simpleaudio
 
 from line_notify import *
 
+sound = AudioSegment.from_mp3("assets/alarm.mp3")
 
 def infer_fast(net, img, net_input_height_size, stride, upsample_ratio,
                pad_value=(0, 0, 0), img_mean=(128, 128, 128), img_scale=1/256):
@@ -69,7 +67,7 @@ def run_demo(net, height_size, track, smooth):
     ear_slope_threshold = 0.5
     eye_ear_slope_threshold = 0.5
     not_detected = (-1, -1)
-    sleep_confirmation_time = 20  # in seconds
+    sleep_confirmation_time = 2  # in seconds
 
     # flags to detect whether the person is sleeping or not
     sleeping = False
@@ -154,7 +152,7 @@ def run_demo(net, height_size, track, smooth):
                     cv2.circle(img, r_ear, 5, (0, 255, 0), 3)
                     if ear_slope > ear_slope_threshold:
                         sleeping = True
-                        print("sleeping")
+                        # print("sleeping")
                     else:
                         sleeping = False
                 else:
@@ -178,20 +176,20 @@ def run_demo(net, height_size, track, smooth):
 
                 if abs(slope_inverse) > slope_threshold:
                     # cv2.putText(img,"".join([str(pose.id),"sleeping"]),(20,50),cv2.FONT_HERSHEY_COMPLEX,2,(255,0,0),3)
-                    print("Sleeping (neck bend more than threshold)")
+                    # print("Sleeping (neck bend more than threshold)")
                     # cv2.putText(img,"sleeping",(20,50),cv2.FONT_HERSHEY_COMPLEX,2,(255,0,0),3)
                     sleeping = True
 
                 elif l_eye == not_detected or r_eye == not_detected:
                     sleeping = True
-                    print("Sleeping (not seeing both eyes)")
+                    # print("Sleeping (not seeing both eyes)")
 
                 elif l_ear_eye_slope < -0.6 or r_ear_eye_slope > 0.6 or l_ear_eye_slope > eye_ear_slope_threshold or r_ear_eye_slope < -eye_ear_slope_threshold:
                     sleeping = True
-                    print("Sleeping (ears higher/lower than eyes)")
+                    # print("Sleeping (ears higher/lower than eyes)")
 
                 else:
-                    print("Not sleeping")
+                    # print("Not sleeping")
                     sleeping = False
 
             if sleeping:
@@ -206,14 +204,13 @@ def run_demo(net, height_size, track, smooth):
                         #lineNotify("Elderly sleeping %d"%time_notified)
                         notifyFile("Elderly sleeping %d" %
                                    time_notified, pic_name)
+                        playback = _play_with_simpleaudio(sound)
                         time_notified += 1
                         timer_started = False
                         sleeping = False
             else:
                 timer_started = False
 
-            #song = AudioSegment.from_mp3("Alarm_Clock_Sound.mp3")
-            # play(song)
 
         img = cv2.addWeighted(orig_img, 0.6, img, 0.6, 0)
 
@@ -248,11 +245,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     from threaded_cam import ThreadedCamera
-    cap = ThreadedCamera(resolution=(1280, 720))
+    cap = ThreadedCamera(resolution=(640, 480))
 
     net = PoseEstimationWithMobileNet()
     checkpoint = torch.load(args.checkpoint_path, map_location='cpu')
     load_state(net, checkpoint)
 
-    run_demo(net, args.height_size, args.track,
-             args.smooth)
+    if not os.path.isdir("log_data"):
+        os.mkdir("log_data")
+    try:
+        run_demo(net, args.height_size, args.track,
+                args.smooth)
+    finally:
+        cap.stop()

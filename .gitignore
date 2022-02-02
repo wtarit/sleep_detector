@@ -6,3 +6,5 @@ __pycache__
 log_data
 test_data
 .env
+test
+assets
